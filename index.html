@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Roman Empire Growth & Shrink Map</title>
+<link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<style>
+  body { margin:0; padding:0; }
+  #map { height: 90vh; width: 100%; }
+  .slider-container { width: 90%; margin: 10px auto; text-align:center; }
+  #yearLabel { font-weight:bold; margin-left:10px; }
+  .info { text-align:center; font-size:16px; margin-top:5px; }
+</style>
+</head>
+<body>
+
+<div id="map"></div>
+<div class="slider-container">
+  <input type="range" min="800" max="1453" step="1" value="800" id="yearSlider">
+  <span id="yearLabel">800 BCE</span>
+</div>
+<div class="info" id="infoBox">Etruscan civilization</div>
+
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script>
+const map = L.map('map').setView([41.9, 12.5], 4);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  maxZoom: 7,
+  attribution: 'Map data © OpenStreetMap contributors'
+}).addTo(map);
+
+const infoBox = document.getElementById('infoBox');
+const yearLabel = document.getElementById('yearLabel');
+
+// Define Roman empire polygons for key periods
+const romanData = [
+  { year: -800, polygon: [[42.5, 11.5],[43.0,12.0],[42.0,13.0],[41.5,12.5]], info:"Etruscans (~800 BCE)"},
+  { year: -500, polygon: [[42.0,12.0],[42.5,12.5],[41.8,13.0],[41.5,12.5]], info:"Early Rome (~500 BCE)"},
+  { year: -200, polygon: [[42.0,10.0],[44.0,13.5],[40.0,14.0],[39.0,11.0]], info:"Roman Republic (509–27 BCE), Punic Wars ongoing"},
+  { year: 100, polygon: [[50.0,-10.0],[50.0,40.0],[30.0,40.0],[30.0,-10.0]], info:"Roman Empire peak (~117 CE)"},
+  { year: 300, polygon: [[50.0,-10.0],[50.0,40.0],[30.0,40.0],[30.0,-10.0]], info:"Crisis of 3rd Century (270 CE)"},
+  { year: 500, polygon: [[46.0,-5.0],[46.0,20.0],[35.0,20.0],[35.0,-5.0]], info:"Western collapse, Eastern survives"},
+  { year: 1000, polygon: [[41.0,10.0],[45.0,30.0],[35.0,30.0],[30.0,10.0]], info:"Byzantine Empire recovery under Macedonian dynasty"},
+  { year: 1453, polygon: [[41.0,10.0],[45.0,30.0],[35.0,30.0],[30.0,10.0]], info:"Fall of Constantinople"}
+];
+
+let currentLayer = L.polygon(romanData[0].polygon, {color:'purple'}).addTo(map);
+infoBox.innerHTML = romanData[0].info;
+
+// Function to update polygon based on slider
+const slider = document.getElementById('yearSlider');
+slider.addEventListener('input', ()=> {
+  const year = parseInt(slider.value);
+  yearLabel.textContent = year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`;
+
+  // Find closest polygon data
+  let closest = romanData[0];
+  for(let i=0; i<romanData.length; i++){
+    if(Math.abs(year - romanData[i].year) < Math.abs(year - closest.year)){
+      closest = romanData[i];
+    }
+  }
+
+  if(currentLayer) map.removeLayer(currentLayer);
+  currentLayer = L.polygon(closest.polygon, {color:'purple'}).addTo(map);
+  map.fitBounds(currentLayer.getBounds());
+  infoBox.innerHTML = closest.info;
+});
+</script>
+
+</body>
+</html>
