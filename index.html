@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Roman Empire Growth & Shrink Map</title>
+<title>Roman Empire Timeline Map with Wars</title>
 <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
 <style>
   body { margin:0; padding:0; }
@@ -17,7 +17,7 @@
 
 <div id="map"></div>
 <div class="slider-container">
-  <input type="range" min="800" max="1453" step="1" value="800" id="yearSlider">
+  <input type="range" min="-800" max="1453" step="1" value="-800" id="yearSlider">
   <span id="yearLabel">800 BCE</span>
 </div>
 <div class="info" id="infoBox">Etruscan civilization</div>
@@ -33,7 +33,7 @@ L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
 const infoBox = document.getElementById('infoBox');
 const yearLabel = document.getElementById('yearLabel');
 
-// Define Roman empire polygons for key periods
+// Roman empire polygons
 const romanData = [
   { year: -800, polygon: [[42.5, 11.5],[43.0,12.0],[42.0,13.0],[41.5,12.5]], info:"Etruscans (~800 BCE)"},
   { year: -500, polygon: [[42.0,12.0],[42.5,12.5],[41.8,13.0],[41.5,12.5]], info:"Early Rome (~500 BCE)"},
@@ -45,29 +45,61 @@ const romanData = [
   { year: 1453, polygon: [[41.0,10.0],[45.0,30.0],[35.0,30.0],[30.0,10.0]], info:"Fall of Constantinople"}
 ];
 
-let currentLayer = L.polygon(romanData[0].polygon, {color:'purple'}).addTo(map);
-infoBox.innerHTML = romanData[0].info;
+// Other civilizations
+const civs = {
+  carthage: {polygon:[[36,-8],[37,-5],[35,-5],[35,-8]], color:'brown', popup:'Carthage (~9th c. BCE–146 BCE)'},
+  gauls: {polygon:[[46,0],[50,5],[45,8],[43,2]], color:'green', popup:'Gauls (~600 BCE–50 BCE)'},
+  parthians: {polygon:[[30,45],[40,60],[20,60],[20,45]], color:'orange', popup:'Parthians (~247 BCE–224 CE)'}
+};
 
-// Function to update polygon based on slider
-const slider = document.getElementById('yearSlider');
-slider.addEventListener('input', ()=> {
-  const year = parseInt(slider.value);
+// Major battles
+const battles = [
+  {lat:41.3, lng:15.2, year:-216, name:"Battle of Cannae"},
+  {lat:37.0, lng:14.0, year:-202, name:"Battle of Zama"},
+  {lat:40.4, lng:14.2, year:-89, name:"Social War"},
+  {lat:31.2, lng:29.9, year:30, name:"Roman annexation of Egypt"},
+  {lat:41.0, lng:28.9, year:1453, name:"Fall of Constantinople"}
+];
+
+let currentLayer, currentCivs = [], currentBattles = [];
+
+// Update function
+function updateMap(year){
+  // Update label
   yearLabel.textContent = year < 0 ? `${Math.abs(year)} BCE` : `${year} CE`;
 
-  // Find closest polygon data
-  let closest = romanData[0];
-  for(let i=0; i<romanData.length; i++){
-    if(Math.abs(year - romanData[i].year) < Math.abs(year - closest.year)){
-      closest = romanData[i];
-    }
-  }
-
+  // Update Roman polygon
+  let closest = romanData.reduce((a,b)=> Math.abs(b.year-year)<Math.abs(a.year-year)?b:a);
   if(currentLayer) map.removeLayer(currentLayer);
   currentLayer = L.polygon(closest.polygon, {color:'purple'}).addTo(map);
   map.fitBounds(currentLayer.getBounds());
   infoBox.innerHTML = closest.info;
-});
+
+  // Update civs
+  currentCivs.forEach(c=>map.removeLayer(c));
+  currentCivs = [];
+  if(year>=-500 && year<=-146){currentCivs.push(L.polygon(civs.carthage.polygon,{color:civs.carthage.color}).bindPopup(civs.carthage.popup).addTo(map));}
+  if(year>=-600 && year<=-50){currentCivs.push(L.polygon(civs.gauls.polygon,{color:civs.gauls.color}).bindPopup(civs.gauls.popup).addTo(map));}
+  if(year>=-247 && year<=224){currentCivs.push(L.polygon(civs.parthians.polygon,{color:civs.parthians.color}).bindPopup(civs.parthians.popup).addTo(map));}
+
+  // Update battles
+  currentBattles.forEach(b=>map.removeLayer(b));
+  currentBattles = [];
+  battles.forEach(b=>{
+    if(Math.abs(b.year-year)<=5){ // show battles within ~5 years
+      currentBattles.push(L.marker([b.lat,b.lng]).bindPopup(`${b.name} (${b.year<0?Math.abs(b.year)+' BCE':b.year+' CE'})`).addTo(map));
+    }
+  });
+}
+
+// Slider listener
+const slider = document.getElementById('yearSlider');
+slider.addEventListener('input', ()=>updateMap(parseInt(slider.value)));
+
+// Initial map
+updateMap(parseInt(slider.value));
 </script>
 
 </body>
 </html>
+
